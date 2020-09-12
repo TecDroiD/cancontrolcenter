@@ -141,11 +141,24 @@ class MessageParser ():
         if len(parameters) != len(text):
             raise CanControlException('Wrong parameter count. Having {} but expecting {}'.format(len(text),len(parameters)))
         
-        data = []
-        dp = 0
-        for val in parameters.values():
+        data = bytearray()
+        for index,val in enumerate(parameters.values()):
+            par = text[index]
+            i = int(par)
+            bi = 0
+            if val == 'i8':
+                bi = i.to_bytes(length=1, byteorder='big')
+            if val == 'i16':
+                bi = i.to_bytes(length=2, byteorder='big')
+            if val == 'i32':
+                bi = i.to_bytes(length=4, byteorder='big')
+            if val == 'c':
+                bi = par.encode('utf-8')
+            data.extend(bi)
             pass
-        
+        if len(data) > 8:
+            raise CanControlException('Message data set too long: {}'.format(data))
+            
         return can.Message(arbitration_id=oid, is_extended_id=False, data=data)
 
 def main(args):

@@ -14,6 +14,14 @@ Installation using virtualenv
 # python3 -m venv env
 # source ./env/bin/activate
 # pip install urwid python-can
+# deactivate
+```
+running is
+
+```bash
+# source ./env/bin/activate
+# python brbcontrol.py
+# deactivate
 ```
 
 TODO
