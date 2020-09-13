@@ -58,8 +58,8 @@ class CanControl (can.Listener):
 
             self.appender.log('canbus connected on {}'.format(self.canbus))
 
-        except:
-            self.appender.log('could not connect canbus', 'warning')
+        except Exception as e:
+            self.appender.log('could not connect canbus: {}'.format(str(e)), 'warning')
 
     def is_connected(self):
         '''
