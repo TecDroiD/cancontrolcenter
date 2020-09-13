@@ -55,7 +55,7 @@ class CanControl (can.Listener):
          :param extended tells if it is an extended message 
         '''
         
-        self.appender.log('sending message {}'.format(str(message)))
+        self.appender.log('sending message {}'.format(str(message)),'debug')
         if self.bus != None :
             self.bus.send(message)
 
@@ -63,7 +63,7 @@ class CanControl (can.Listener):
         '''
         handles a received message
         '''
-        self.appender.log('Received Message : {}'.format(msg))
+        self.appender.log('Received Message : {}'.format(msg),'info')
     
     def on_error(self,exc):
         '''
@@ -122,6 +122,40 @@ class MessageParser ():
         
         with open(self.controlfile, 'w') as fp:
             json.dump(self.data, fp, indent=2)
+    
+    def parse_message(self, message:can.Message):
+        '''
+        parses a can message and receives it's input
+        '''
+        id = message.arbitration_id
+        data = message.data
+        output = ''
+        
+        for key in self.data.keys():
+            mtype = self.data[key]
+            if mtype['_id'] == id:
+                output += 'Message : {}'.format(key)
+                output += '  - id: {}'.format(id)
+                parameters = mtype['parameters']
+                pos = 0
+                for par in parameters.keys():
+                    ptype = parameters[par]
+                    val = 0
+                    if ptype == 'i8':
+                        val = int.from_bytes(data[:1], byteorder='big', signed=True)
+                        data[0] = []
+                    elif ptype == 'i16':
+                        val = int.from_bytes(data[0:2], byteorder='big', signed=True)
+                        data[0:2] = []
+                    elif ptype == 'i32':
+                        val = int.from_bytes(data[0:4], byteorder='big', signed=True)
+                        data[0:4] = []
+                    else:
+                        val = chr(data[0])
+                        data[0] = []
+                    
+                    output += '  - {} : {}'.format(par,val)
+        return output
             
     def create_message(self, text=[]):
         '''
@@ -138,24 +172,29 @@ class MessageParser ():
         
         oid = order['_id']
         parameters =  order['parameters']
+        pkeys = list(parameters.keys())
         if len(parameters) != len(text):
             raise CanControlException('Wrong parameter count. Having {} but expecting {}'.format(len(text),len(parameters)))
         
         data = bytearray()
-        for index,val in enumerate(parameters.values()):
-            par = text[index]
-            i = int(par)
-            bi = 0
-            if val == 'i8':
-                bi = i.to_bytes(length=1, byteorder='big')
-            if val == 'i16':
-                bi = i.to_bytes(length=2, byteorder='big')
-            if val == 'i32':
-                bi = i.to_bytes(length=4, byteorder='big')
-            if val == 'c':
-                bi = par.encode('utf-8')
-            data.extend(bi)
-            pass
+        try:
+            for index,val in enumerate(parameters.values()):
+                par = text[index]
+                i = int(par)
+                bi = 0
+                if val == 'i8':
+                    bi = i.to_bytes(length=1, byteorder='big', signed=True)
+                if val == 'i16':
+                    bi = i.to_bytes(length=2, byteorder='big', signed=True)
+                if val == 'i32':
+                    bi = i.to_bytes(length=4, byteorder='big', signed=True)
+                if val == 'c':
+                    bi = par.encode('utf-8')
+                data.extend(bi)
+                pass
+        except Exception as e:
+            raise CanControlException('Parameter {}: {}'.format(pkeys[index],str(e)))
+            
         if len(data) > 8:
             raise CanControlException('Message data set too long: {}'.format(data))
             

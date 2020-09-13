@@ -7,6 +7,8 @@
 #  
 #  
 import urwid
+import urwid.curses_display
+
 import json
 
 from canmessages import *
@@ -16,10 +18,14 @@ class LogDisplay ():
     just an inteface class for a message display
     '''
     level = ['error','warning','info','debug']
+    
 
     def __init__(self):
-        self.__logfield = None
         self.__loglevel = LogDisplay.level.index('info')
+        self.__entries = []
+        self.__walker = urwid.SimpleFocusListWalker(self.__entries)
+        self.listbox = urwid.ListBox(self.__walker)
+        self.ui = urwid.curses_display.Screen()
         pass
     
     def set_message_level(self, l='info'):
@@ -46,21 +52,16 @@ class LogDisplay ():
         append a message to the message window
         '''
         if self.__loglevel >= LogDisplay.level.index(level):
-            txt = self.__logfield.text + message + '\n'
-            self.__logfield.set_text(txt)
+            txt = urwid.Text(message)
+            self.__walker.append(txt)
+            self.listbox.set_focus(self.__walker.positions(True)[0])
             
     def clear_messages(self,message=None):
         '''
         clears the message area
         '''
-        self.__logfield.set_text('') 
+        self.__walker.clear()
         
-    def set_logfield(self, logfield):
-        '''
-        sets the field we are logging into
-        '''
-        self.__logfield = logfield
-
         
 
 class MainFrame (LogDisplay):
@@ -70,7 +71,28 @@ class MainFrame (LogDisplay):
         ('editbx','light gray', 'dark blue'),
         ('footer','black','light gray', 'standout'),
         ]
-        
+    
+    helptext =  'send : Send a message\n' \
+            'list : List known messages\n'\
+            'add  : Add a message\n'\
+            'clear: Clear message screen\n'\
+            'log  : Set log level\n'\
+            'help : Show this help (type help [order] for more specific help)\n'\
+            'quit : Exit the program\n'
+            
+    helporder = {
+            'send' : 'Sends a message. usage: send [messagename] parameter parameter ...\nExample\n send move 400000 2000 100',
+            'list' : 'Without parameter: Lists all can order names. More specific with order name as parameter.',
+            'add'  : 'Adds a new message type.\n usage: add [messagename] parameter parameter ..\n' \
+                    ' Parameters are defined as [name]:[type]\n  Possible types are\n'\
+                    '   c for char\n   i8 for 8 bit integer\n   i16 for 16 bit integer\n   i32 for 32 bit integer\n'\
+                    ' Example:\n add move destination:i32 speed:i16 acceleration:i16',
+                    
+            'clear' : 'No parameters neccessary. just type clear and console clears.',
+            'log' : 'Sets the log level. possible parameters: error, warning, info or debug',
+            'help' : 'Show help message. Type help [order] for more specific help',
+            'quit' : 'Just type quit to exit',
+        }
 
     def __init__(self, bus = 'dummy'):  
         '''
@@ -88,16 +110,13 @@ class MainFrame (LogDisplay):
                  }
         
         # create ui
-        self.edit= urwid.Edit(caption="Input: ", edit_text='')
         header = urwid.AttrWrap(urwid.Text('Barobo CAN Control Center (type \'help\' for help, F8 or \'quit\' for exit)'), 'header')
+
+        self.edit= urwid.Edit(caption="Input: ", edit_text='')
         footer = urwid.AttrWrap(urwid.AttrWrap(self.edit,'editbx'), 'footer')
 
-        self.txt= urwid.Text("")
-        listbox_content = [self.txt]
-        listbox = urwid.ListBox(urwid.SimpleListWalker(listbox_content))
-        self.frame = urwid.Frame(urwid.AttrWrap(listbox, 'body'), header=header, footer=footer, focus_part='footer')
+        self.frame = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'), header=header, footer=footer, focus_part='footer')
 
-        self.set_logfield(self.txt)
         self.can = CanControl(self, bus)
         self.parser = MessageParser()
         self.history = []
@@ -107,14 +126,15 @@ class MainFrame (LogDisplay):
         '''
         display system help
         '''
-        self.log('send : Send a message')
-        self.log('list : List known messages')
-        self.log('add  : Add a message')
-        self.log('clear: Clear message screen')
-        self.log('log  : set log level')
-        self.log('help : Show this help')
-        self.log('quit : Exit the program')
-        
+        if len (messages) == 0:
+            self.log(MainFrame.helptext)
+        else:
+            for msg in messages:
+                if msg in MainFrame.helporder:
+                    self.log(MainFrame.helporder[msg])
+                else:
+                    self.log('Sorry, no help for {}.'.format(msg),'warning')
+            
         pass
 
     def send_message(self, tok):
@@ -124,6 +144,7 @@ class MainFrame (LogDisplay):
         try:
             message = self.parser.create_message(tok)
             self.can.send_message(message)
+            self.log(self.parser.parse_message(message))
         except can.CanError as e:
             raise CanControlException(str(e))
         
@@ -190,6 +211,8 @@ class MainFrame (LogDisplay):
         '''
         if key == 'f8':
             self.quit()
+        elif key == 'esc':
+            self.edit.set_edit_text('')
         elif key == 'up':
             if self.hpos+1 < len(self.history):
                 self.hpos += 1
@@ -198,10 +221,6 @@ class MainFrame (LogDisplay):
             if self.hpos > 0:
                 self.hpos -= 1
                 self.edit.set_edit_text(self.history[self.hpos])
-        elif key == 'page down':
-            self.log('scrolling is not yet functional')
-        elif key == 'page up':
-            self.log('scrolling is not yet functional')            
         elif key == 'enter':
             txt = self.edit.edit_text
             self.history.insert(0,txt)
