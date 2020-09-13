@@ -119,7 +119,7 @@ class MainFrame (LogDisplay):
     
     frameheading = 'My CAN Control Center (type \'help\' for help, F8 or \'quit\' for exit)'
 
-    def __init__(self, bus = 'dummy'):  
+    def __init__(self, bus = 'can0'):  
         '''
         initialization - no parameters needed yet
         '''
@@ -265,7 +265,7 @@ class MainFrame (LogDisplay):
 main function handler
 '''
 def main(args):
-    bus = 'dummy'
+    bus = 'can0'
 
     if len(args) == 2:
         bus = args[1]

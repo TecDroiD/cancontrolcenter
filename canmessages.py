@@ -49,7 +49,7 @@ class CanControl (can.Listener):
         
         try :
             if (self.canbus != 'dummy'):
-                self.bus = can.interface.Bus(bustype='socketcan', channel=self.canbus, bitrate=250000)
+                self.bus = can.interface.Bus(bustype='socketcan_native', channel=self.canbus, bitrate=250000)
             else:
                 self.bus = can.interface.Bus()
 
@@ -59,7 +59,7 @@ class CanControl (can.Listener):
             self.appender.log('canbus connected on {}'.format(self.canbus))
 
         except Exception as e:
-            self.appender.log('could not connect canbus: {}'.format(str(e)), 'warning')
+            self.appender.log('could not connect canbus{}: {}'.format(self.canbus, str(e)), 'warning')
 
     def is_connected(self):
         '''
