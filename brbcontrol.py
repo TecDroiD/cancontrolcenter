@@ -5,6 +5,22 @@
 #  
 #  author: Jens Rapp
 #  
+#  Copyright 2020 Jens Rapp <rapp.jens@gmail.com>
+#  
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
 #  
 import urwid
 import urwid.curses_display
@@ -21,6 +37,10 @@ class LogDisplay ():
     
 
     def __init__(self):
+        '''
+        simple constructor
+        creates a listbox for log entries
+        '''
         self.__loglevel = LogDisplay.level.index('info')
         self.__entries = []
         self.__walker = urwid.SimpleFocusListWalker(self.__entries)
@@ -65,6 +85,9 @@ class LogDisplay ():
         
 
 class MainFrame (LogDisplay):
+    '''
+    the mainframe for my application
+    '''
     palette = [
         ('body','black','light gray', 'standout'),
         ('header','light gray', 'dark red', 'standout'),
@@ -93,6 +116,8 @@ class MainFrame (LogDisplay):
             'help' : 'Show help message. Type help [order] for more specific help',
             'quit' : 'Just type quit to exit',
         }
+    
+    frameheading = 'My CAN Control Center (type \'help\' for help, F8 or \'quit\' for exit)'
 
     def __init__(self, bus = 'dummy'):  
         '''
@@ -110,7 +135,7 @@ class MainFrame (LogDisplay):
                  }
         
         # create ui
-        header = urwid.AttrWrap(urwid.Text('Barobo CAN Control Center (type \'help\' for help, F8 or \'quit\' for exit)'), 'header')
+        header = urwid.AttrWrap(urwid.Text(MainFrame.frameheading), 'header')
 
         self.edit= urwid.Edit(caption="Input: ", edit_text='')
         footer = urwid.AttrWrap(urwid.AttrWrap(self.edit,'editbx'), 'footer')

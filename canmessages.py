@@ -2,14 +2,34 @@
 # -*- coding: utf-8 -*-
 #
 #  canmessages.py
+#
+#  Copyright 2020 Jens Rapp <tecdroid@tecdroid>
 #  
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 2 of the License, or
+#  (at your option) any later version.
+#  
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+#  MA 02110-1301, USA.
 #  
 
 import can
 import json
 import ctypes
 
+
 class CanControlException(Exception):
+    '''
+    just a stupid exception 
+    '''
     def __init__(self,message):
         super().__init__(message)
     
@@ -39,7 +59,7 @@ class CanControl (can.Listener):
             self.appender.log('canbus connected on {}'.format(self.canbus))
 
         except:
-            self.appender.log('could not connect canbus')
+            self.appender.log('could not connect canbus', 'warning')
 
     def is_connected(self):
         '''
@@ -65,13 +85,6 @@ class CanControl (can.Listener):
         '''
         self.appender.log('Received Message : {}'.format(msg),'info')
     
-    def on_error(self,exc):
-        '''
-        error handler
-        '''
-        self.appender.log("ERROR: {}".format(exc), 'error')
-        pass
-
         
 class MessageParser ():
     '''
@@ -89,7 +102,10 @@ class MessageParser ():
         except:
             pass
 
-    def list_messages(self,text=[]): 
+    def list_messages(self,parameters=[]): 
+        '''
+        print a list of all known messages
+        '''
         ret = ''
         if len(text) != 0:
             for order in text:
@@ -105,15 +121,15 @@ class MessageParser ():
         
         return ret
 
-    def add_messagetype(self, text=[]):
+    def add_messagetype(self, parameters=[]):
         '''
         appends a new order to controller
         '''
-        name = text.pop(0)
-        id = int (text.pop(0))
+        name = parameters.pop(0)
+        id = int (parameters.pop(0))
         order = {'_id' : id}
         params = {}
-        for param in text:
+        for param in parameters:
             pname,ptype = param.split(':') 
             params.update({pname:ptype})
         
