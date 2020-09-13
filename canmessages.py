@@ -48,11 +48,13 @@ class CanControl (can.Listener):
 
         
         try :
+            # create bus
             if (self.canbus != 'dummy'):
                 self.bus = can.interface.Bus(bustype='socketcan_native', channel=self.canbus, bitrate=250000)
             else:
                 self.bus = can.interface.Bus()
 
+            # add listener
             listeners = [self]
             self.notifier = can.Notifier(self.bus, listeners)
 
@@ -74,18 +76,17 @@ class CanControl (can.Listener):
          :param data the data array
          :param extended tells if it is an extended message 
         '''
-        
         self.appender.log('sending message {}'.format(str(message)),'debug')
-        if self.bus != None :
+        if self.is_connected() :
             self.bus.send(message)
 
-    def __recv_message(self, msg):
+    def on_message_received(self, msg):
         '''
         handles a received message
         '''
         self.appender.log('Received Message : {}'.format(msg),'info')
-    
-        
+
+
 class MessageParser ():
     '''
     this creates a can message from orders
@@ -107,8 +108,8 @@ class MessageParser ():
         print a list of all known messages
         '''
         ret = ''
-        if len(text) != 0:
-            for order in text:
+        if len(parameters) != 0:
+            for order in parameters:
                 if order in self.data:
                     item = dict(self.data[order])
                     ret += json.dumps(item)

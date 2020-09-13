@@ -184,6 +184,8 @@ class MainFrame (LogDisplay):
         exit
         '''
         raise urwid.ExitMainLoop()
+        self.loop.stop()
+        
         
     def list_messages(self, tok):
         '''
@@ -257,8 +259,8 @@ class MainFrame (LogDisplay):
         '''
         initialize the main loop
         '''
-        loop = urwid.MainLoop(self.frame, self.palette, unhandled_input=self.handle_key)
-        loop.run()    
+        self.loop = urwid.MainLoop(self.frame, self.palette, unhandled_input=self.handle_key, event_loop=urwid.AsyncioEventLoop())
+        self.loop.run()    
 
         
 '''
