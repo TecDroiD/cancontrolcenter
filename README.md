@@ -31,9 +31,12 @@ Adding Message Types
 --------------------
 for sending messages you will need to define a message type. This is done by using the order add
 
-usage: add messagename messageid parameter parameter
- Parameters are defined as \[name\]:\[type\]  
- Possible types are
+```
+add messagename messageid parameter parameter ..
+```
+
+Parameters are defined as \[name\]:\[type\]  
+Possible parameter types are
 - c for char
 - i8 for 8 bit integer
 - i16 for 16 bit integer
