@@ -34,10 +34,10 @@ for sending messages you will need to define a message type. This is done by usi
 usage: add messagename messageid parameter parameter
  Parameters are defined as \[name\]:\[type\]  
  Possible types are
-    - c for char
-    - i8 for 8 bit integer
-    - i16 for 16 bit integer
-    - i32 for 32 bit integer
+- c for char
+- i8 for 8 bit integer
+- i16 for 16 bit integer
+- i32 for 32 bit integer
 
 Hint: All numbers are written decimal!
 
