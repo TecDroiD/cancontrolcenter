@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  brbcontrol.py
+#  cancontrol.py
 #  
 #  author: Jens Rapp
 #  
 #  Copyright 2020 Jens Rapp <rapp.jens@gmail.com>
 #  
 #  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
+#  it under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 2.1 of the License, or
 #  (at your option) any later version.
 #  
 #  This program is distributed in the hope that it will be useful,
@@ -17,7 +17,7 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
 #  
-#  You should have received a copy of the GNU General Public License
+#  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
@@ -34,7 +34,6 @@ class LogDisplay ():
     just an inteface class for a message display
     '''
     level = ['error','warning','info','debug']
-    
 
     def __init__(self):
         '''
@@ -46,6 +45,7 @@ class LogDisplay ():
         self.__walker = urwid.SimpleFocusListWalker(self.__entries)
         self.listbox = urwid.ListBox(self.__walker)
         self.ui = urwid.curses_display.Screen()
+        self.logfile = None
         pass
     
     def set_message_level(self, l='info'):
@@ -73,9 +73,19 @@ class LogDisplay ():
         '''
         if self.__loglevel >= LogDisplay.level.index(level):
             txt = urwid.Text(message)
-            self.__walker.append(txt)
+            self.__walker.append( urwid.AttrWrap(txt, level))
             self.listbox.set_focus(self.__walker.positions(True)[0])
+        
+            if self.logfile is not None:
+                with open(self.logfile, 'a+') as fp:
+                    fp.write('[{}] {}\n'.format(level.upper(),message))
             
+    def set_logfile(self, logfile):
+        ''' 
+        sets a logfile to log into
+        '''
+        self.logfile = logfile
+        
     def clear_messages(self,message=None):
         '''
         clears the message area
@@ -93,6 +103,10 @@ class MainFrame (LogDisplay):
         ('header','light gray', 'dark red', 'standout'),
         ('editbx','light gray', 'dark blue'),
         ('footer','black','light gray', 'standout'),
+        ('error','dark red','light gray','standout'),
+        ('warning','dark blue','light gray','standout'),
+        ('info','black','light gray','standout'),
+        ('debug','dark gray','light gray','standout'),
         ]
     
     helptext =  'send : Send a message\n' \
@@ -100,6 +114,7 @@ class MainFrame (LogDisplay):
             'add  : Add a message\n'\
             'clear: Clear message screen\n'\
             'log  : Set log level\n'\
+            'file : set log file\n' \
             'help : Show this help (type help [order] for more specific help)\n'\
             'quit : Exit the program\n'
             
@@ -113,6 +128,7 @@ class MainFrame (LogDisplay):
                     
             'clear' : 'No parameters neccessary. just type clear and console clears.',
             'log' : 'Sets the log level. possible parameters: error, warning, info or debug',
+            'file' : 'Sets the log file. possible filename or off',
             'help' : 'Show help message. Type help [order] for more specific help',
             'quit' : 'Just type quit to exit',
         }
@@ -131,6 +147,7 @@ class MainFrame (LogDisplay):
                    'quit' : self.quit,
                    'help' : self.show_help,
                    'log'  : self.set_verbosity,
+                   'file' : self.set_log,
                    'clear': self.clear_messages,
                  }
         
@@ -142,8 +159,8 @@ class MainFrame (LogDisplay):
 
         self.frame = urwid.Frame(urwid.AttrWrap(self.listbox, 'body'), header=header, footer=footer, focus_part='footer')
 
-        self.can = CanControl(self, bus)
         self.parser = MessageParser()
+        self.can = CanControl(self, self.parser, bus)
         self.history = []
         self.hpos = -1
     
@@ -186,7 +203,15 @@ class MainFrame (LogDisplay):
         raise urwid.ExitMainLoop()
         self.loop.stop()
         
-        
+    def set_log(self, tok):
+        '''
+        sets a logfile
+        '''
+        self.log( ','.join(tok),'debug')
+        if tok[0] != 'off':
+            self.log('setting logfile {}'.format(tok[0]))
+            self.set_logfile(tok[0])
+            
     def list_messages(self, tok):
         '''
         display system help

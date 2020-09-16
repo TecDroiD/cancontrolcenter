@@ -6,7 +6,7 @@
 #  Copyright 2020 Jens Rapp <tecdroid@tecdroid>
 #  
 #  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
+#  it under the terms of the GNU Lesser General Public License as published by
 #  the Free Software Foundation; either version 2 of the License, or
 #  (at your option) any later version.
 #  
@@ -15,7 +15,7 @@
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
 #  
-#  You should have received a copy of the GNU General Public License
+#  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA 02110-1301, USA.
@@ -37,12 +37,13 @@ class CanControl (can.Listener):
     '''
     the can controller
     '''
-    def __init__(self, appender, canbus='can0'):
+    def __init__(self, appender, parser, canbus='can0'):
         '''
         creates a can interface... or dummy interface
         '''
         super().__init__()
         self.appender = appender
+        self.parser = parser
         self.canbus = canbus
         self.bus = None
 
@@ -61,7 +62,7 @@ class CanControl (can.Listener):
             self.appender.log('canbus connected on {}'.format(self.canbus))
 
         except Exception as e:
-            self.appender.log('could not connect canbus{}: {}'.format(self.canbus, str(e)), 'warning')
+            self.appender.log('could not connect canbus {}: {}'.format(self.canbus, str(e)), 'warning')
 
     def is_connected(self):
         '''
@@ -83,8 +84,11 @@ class CanControl (can.Listener):
     def on_message_received(self, msg):
         '''
         handles a received message
+        :param msg the message to handle
         '''
-        self.appender.log('Received Message : {}'.format(msg),'info')
+        parsed = self.parser.parse_message(msg)
+        self.appender.log('Received Message : {}'.format(msg),'debug')
+        self.appender.log('Received Message : {}'.format(parsed),'info')
 
 
 class MessageParser ():
@@ -148,10 +152,10 @@ class MessageParser ():
         data = message.data
         output = ''
         
+        # if message known, parse it
         for key in self.data.keys():
             mtype = self.data[key]
             if mtype['_id'] == id:
-                output += 'Message : {}'.format(key)
                 output += '  - id: {}'.format(id)
                 parameters = mtype['parameters']
                 pos = 0
@@ -172,7 +176,10 @@ class MessageParser ():
                         data[0] = []
                     
                     output += '  - {} : {}'.format(par,val)
-        return output
+                return output
+                
+        # in case message unknown
+        return str(message)
             
     def create_message(self, text=[]):
         '''
